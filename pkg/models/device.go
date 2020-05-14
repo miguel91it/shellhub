@@ -67,6 +67,7 @@ type Params struct {
 }
 
 type Filter struct {
-	Type   string `json:"type"`
-	Params Params `json:"params"`
+	Type   string `json:"type,omitempty"`
+	Params Params `json:"params,omitempty"`
+	Name   string `json:"name,omitempty"`
 }

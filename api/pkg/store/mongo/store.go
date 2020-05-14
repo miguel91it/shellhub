@@ -25,6 +25,7 @@ func NewStore(db *mongo.Database) *Store {
 
 func (s *Store) ListDevices(ctx context.Context, perPage, page int, filters []models.Filter) ([]models.Device, int, error) {
 	skip := perPage * (page - 1)
+	var queryMatch []bson.M
 	var queryFilter []bson.M
 	for _, filter := range filters {
 		if filter.Type == "property" && filter.Params.Operator == "like" {
@@ -50,7 +51,23 @@ func (s *Store) ListDevices(ctx context.Context, perPage, page int, filters []mo
 					"$eq": operator,
 				},
 			})
+		} else if filter.Type == "operator" && filter.Name == "and" {
+			queryMatch = append(queryMatch, bson.M{
+				"$match": bson.M{"$and": queryFilter},
+			})
+			queryFilter = []bson.M{}
+		} else if filter.Type == "operator" && filter.Name == "or" {
+			queryMatch = append(queryMatch, bson.M{
+				"$match": bson.M{"$or": queryFilter},
+			})
+			queryFilter = []bson.M{}
 		}
+
+	}
+	if len(queryFilter) > 0 {
+		queryMatch = append(queryMatch, bson.M{
+			"$match": bson.M{"$or": queryFilter},
+		})
 	}
 
 	query := []bson.M{
@@ -83,10 +100,8 @@ func (s *Store) ListDevices(ctx context.Context, perPage, page int, filters []mo
 	}
 
 	// Apply filters if any
-	if len(queryFilter) > 0 {
-		query = append(query, bson.M{
-			"$match": bson.M{"$or": queryFilter},
-		})
+	if len(queryMatch) > 0 {
+		query = append(query, queryMatch...)
 	}
 
 	// Only match for the respective tenant if requested
