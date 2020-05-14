@@ -28,13 +28,12 @@
             </v-list-item-avatar>
           </v-list-item>
 
-          <v-card-actions>
-            <UserWelcome />
+          <v-card-actions v-if="stats.registered_devices == 0">
+            <Welcome :screen-welcome="true" />
           </v-card-actions>
 
           <v-card-actions>
             <DeviceAdd />
-            <UserWelcome />
             <v-btn
               text
               @click="$store.dispatch('modals/showAddDevice', true)"
@@ -126,15 +125,14 @@
 
 <script>
 import DeviceAdd from '@/components/device/DeviceAdd.vue';
-import UserWelcome from '@/components/user/UserWelcome.vue';
-
+import Welcome from '@/components/welcome/Welcome.vue';
 
 export default {
   name: 'Dashboard',
 
   components: {
     DeviceAdd,
-    UserWelcome,
+    Welcome,
   },
 
   computed: {
@@ -143,19 +141,8 @@ export default {
     }
   },
 
-  created() {
-    this.$store.dispatch('stats/get');
-
-    // eslint-disable-next-line no-undef
-    // eslint-disable-next-line no-console
-    console.log('juca');
-
-    if(this.$store.getters['stats/stats'].registered_devices === 0){
-      // eslint-disable-next-line no-undef
-      // eslint-disable-next-line no-console
-      console.log('juca');
-      this.$store.dispatch('modals/showUserWelcome', true);
-    }
+  async created() {
+    await this.$store.dispatch('stats/get');
   }
 };
 </script>

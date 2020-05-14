@@ -10,46 +10,33 @@
         class="headline grey lighten-2 text-center"
         primary-title
       >
-        Welcome, 
+        Welcome to ShellHub
       </v-card-title>
 
-      <v-card-text class="mt-4 mb-0 pb-1">
-        <p>In order to register a device on ShellHub, you need to install ShellHub agent onto it.</p>
-        <p>
-          The easiest way to install ShellHub agent is with our automatic one-line installation script,
-          which works with all Linux distributions that have Docker installed and properly set up.
-        </p>
+      <v-card-actions v-if="screenFirst">
+        <WelcomeFirstScreen />
+      </v-card-actions>
 
-        <strong>Run the following command on your device:</strong>
-        <v-text-field
-          class="code"
-          fill-width
-          outlined
-          readonly
-          dense
-          append-icon="mdi-content-copy"
-          :value="command()"
-          @click:append="copyCommand"
-        />
-
-        <v-divider />
-
-        <p class="caption mb-0">
-          Check the <a
-            :href="'https://shellhub-io.github.io/guides/registering-device/'"
-            target="_blank"
-          >documentation</a>
-          for more information and alternative install methods.
-        </p>
-      </v-card-text>
+      <v-card-actions v-if="!screenFirst">
+        <WelcomeSecondScreen :command="command()" />
+      </v-card-actions>
 
       <v-card-actions>
+        <v-btn
+          v-if="!screenFirst"
+          text
+          @click="backScreen"
+        >
+          Back
+        </v-btn>
+
         <v-spacer />
+        
         <v-btn
           text
-          @click="validadeAddDevice"
+          @click="nextScren"
         >
-          Close
+          Next
         </v-btn>
       </v-card-actions>
 
@@ -70,14 +57,31 @@
 </template>
 
 <script>
+import WelcomeFirstScreen from '@/components/welcome/WelcomeFirstScreen.vue';
+import WelcomeSecondScreen from '@/components/welcome/WelcomeSecondScreen.vue';
+
+
 export default {
-  name: 'UserWelcome',
+  name: 'Welcome',
+
+  components: {
+    WelcomeFirstScreen,
+    WelcomeSecondScreen,
+  },
+
+  props: {
+    screenWelcome: {
+      type: Boolean,
+      required: true
+    },
+  },
 
   data() {
     return {
       hostname: window.location.hostname,
       copySnack: false,      
-      allowsUserContinue: false
+      allowsUserContinue: false,
+      screenFirst: true,
     };
   },
 
@@ -88,11 +92,11 @@ export default {
 
     show: {
       get() {
-        return this.$store.getters['modals/status_welcome'];
+        return this.screenWelcome;
       },
 
       set(value) {
-        this.$store.dispatch('modals/showWelcome', value);
+        this.screenWelcome = value;
       }
     }
   },
@@ -116,6 +120,14 @@ export default {
           this.allowsUserContinue = true;
         }
       }
+    },
+
+    nextScren() {
+      this.screenFirst = false;
+    },
+
+    backScreen() {
+      this.screenFirst = true;
     }
 
   }
