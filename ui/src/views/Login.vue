@@ -33,6 +33,7 @@
         <v-form @submit.prevent="login()">
           <v-card-text>
             <v-text-field
+              id="username"
               v-model="username"
               :error="this.$store.getters['auth/authStatus'] == 'error'"
               prepend-icon="person"
@@ -54,6 +55,7 @@
             <v-btn
               type="submit"
               color="primary"
+              data-cy="submit"
             >
               Submit
             </v-btn>
