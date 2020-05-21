@@ -19,6 +19,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/parnurzeal/gorequest"
+	"github.com/shellhub-io/shellhub/agent/internal/device"
 	"github.com/shellhub-io/shellhub/pkg/models"
 	"github.com/shellhub-io/shellhub/pkg/revdial"
 	"github.com/shellhub-io/shellhub/pkg/wsconnadapter"
@@ -112,12 +113,12 @@ func main() {
 		logrus.WithFields(logrus.Fields{"err": errs[0]}).Fatal("Failed to get endpoints")
 	}
 
-	identity, err := GetDeviceIdentity()
+	identity, err := device.NewDeviceIdentity()
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	devinfo, err := GetDeviceInfo()
+	devinfo, err := device.NewDeviceInfo()
 	if err != nil {
 		logrus.Fatal(err)
 	}
