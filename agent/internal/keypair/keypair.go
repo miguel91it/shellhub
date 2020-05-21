@@ -1,4 +1,4 @@
-package main
+package keypair
 
 import (
 	"crypto/rand"
@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func generatePrivateKey(filename string) error {
+func GeneratePrivateKey(filename string) error {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func generatePrivateKey(filename string) error {
 	return f.Sync()
 }
 
-func readPublicKey(filename string) (*rsa.PublicKey, error) {
+func ReadPublicKey(filename string) (*rsa.PublicKey, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err

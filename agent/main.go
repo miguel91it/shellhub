@@ -20,6 +20,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/parnurzeal/gorequest"
 	"github.com/shellhub-io/shellhub/agent/internal/device"
+	"github.com/shellhub-io/shellhub/agent/internal/keypair"
 	"github.com/shellhub-io/shellhub/pkg/models"
 	"github.com/shellhub-io/shellhub/pkg/revdial"
 	"github.com/shellhub-io/shellhub/pkg/wsconnadapter"
@@ -126,13 +127,13 @@ func main() {
 
 	if _, err := os.Stat(opts.PrivateKey); os.IsNotExist(err) {
 		logrus.Info("Private key not found. Generating...")
-		err := generatePrivateKey(opts.PrivateKey)
+		err := keypair.GeneratePrivateKey(opts.PrivateKey)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 	}
 
-	pubKey, err := readPublicKey(opts.PrivateKey)
+	pubKey, err := keypair.ReadPublicKey(opts.PrivateKey)
 	if err != nil {
 		logrus.Fatal(err)
 	}
