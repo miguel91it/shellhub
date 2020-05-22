@@ -1,4 +1,4 @@
-package main
+package selfupdater
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"github.com/parnurzeal/gorequest"
 	"github.com/shellhub-io/shellhub/pkg/models"
 )
+
+var AgentVersion string
 
 type Updater interface {
 	CurrentVersion() (*semver.Version, error)

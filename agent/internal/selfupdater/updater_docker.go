@@ -1,6 +1,6 @@
 // +build docker
 
-package main
+package selfupdater
 
 import (
 	"bufio"

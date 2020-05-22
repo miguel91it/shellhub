@@ -21,13 +21,12 @@ import (
 	"github.com/parnurzeal/gorequest"
 	"github.com/shellhub-io/shellhub/agent/internal/device"
 	"github.com/shellhub-io/shellhub/agent/internal/keypair"
+	"github.com/shellhub-io/shellhub/agent/internal/selfupdater"
 	"github.com/shellhub-io/shellhub/pkg/models"
 	"github.com/shellhub-io/shellhub/pkg/revdial"
 	"github.com/shellhub-io/shellhub/pkg/wsconnadapter"
 	"github.com/sirupsen/logrus"
 )
-
-var AgentVersion string
 
 type ConfigOptions struct {
 	ServerAddress string `envconfig:"server_address"`
@@ -88,7 +87,7 @@ func main() {
 		logrus.Panic(err)
 	}
 
-	updater, err := NewUpdater()
+	updater, err := selfupdater.NewUpdater()
 	if err != nil {
 		logrus.Panic(err)
 	}
@@ -100,7 +99,7 @@ func main() {
 
 	currentVersion := new(semver.Version)
 
-	if AgentVersion != "latest" {
+	if selfupdater.AgentVersion != "latest" {
 		currentVersion, err = updater.CurrentVersion()
 		if err != nil {
 			logrus.Panic(err)
@@ -123,7 +122,7 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	devinfo.Version = AgentVersion
+	devinfo.Version = selfupdater.AgentVersion
 
 	if _, err := os.Stat(opts.PrivateKey); os.IsNotExist(err) {
 		logrus.Info("Private key not found. Generating...")
@@ -187,10 +186,10 @@ func main() {
 	}()
 
 	// Disable check update in development mode
-	if AgentVersion != "latest" {
+	if selfupdater.AgentVersion != "latest" {
 		go func() {
 			for {
-				nextVersion, err := CheckUpdate(opts.ServerAddress)
+				nextVersion, err := selfupdater.CheckUpdate(opts.ServerAddress)
 				if err != nil {
 					logrus.Error(err)
 					goto sleep
