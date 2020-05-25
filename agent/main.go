@@ -19,6 +19,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/parnurzeal/gorequest"
+	"github.com/shellhub-io/shellhub/agent/pkg/keygen"
+	"github.com/shellhub-io/shellhub/agent/selfupdater"
+	"github.com/shellhub-io/shellhub/agent/sshd"
 	"github.com/shellhub-io/shellhub/pkg/models"
 	"github.com/shellhub-io/shellhub/pkg/revdial"
 	"github.com/shellhub-io/shellhub/pkg/wsconnadapter"
@@ -63,6 +66,17 @@ func Revdial(ctx context.Context, protocol, address, path string) (*websocket.Co
 	return websocket.DefaultDialer.DialContext(ctx, strings.Join([]string{fmt.Sprintf("%s://%s", protocol, address), path}, ""), nil)
 }
 
+func CheckUpdate(server string) (*semver.Version, error) {
+	info := models.Info{}
+
+	_, _, errs := gorequest.New().Get(fmt.Sprintf("%s/info", server)).EndStruct(&info)
+	if len(errs) > 0 {
+		return nil, errs[0]
+	}
+
+	return semver.NewVersion(info.Version)
+}
+
 type Information struct {
 	SSHID string `json:"sshid"`
 }
@@ -86,7 +100,7 @@ func main() {
 		logrus.Panic(err)
 	}
 
-	updater, err := NewUpdater()
+	updater, err := selfupdater.NewUpdater(AgentVersion)
 	if err != nil {
 		logrus.Panic(err)
 	}
@@ -125,13 +139,13 @@ func main() {
 
 	if _, err := os.Stat(opts.PrivateKey); os.IsNotExist(err) {
 		logrus.Info("Private key not found. Generating...")
-		err := generatePrivateKey(opts.PrivateKey)
+		err := keygen.GeneratePrivateKey(opts.PrivateKey)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 	}
 
-	pubKey, err := readPublicKey(opts.PrivateKey)
+	pubKey, err := keygen.ReadPublicKey(opts.PrivateKey)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -147,18 +161,18 @@ func main() {
 		return
 	}
 
-	server := NewSSHServer(opts.PrivateKey)
+	server := sshd.NewSSHServer(opts.PrivateKey)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/ssh/{id}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		conn := r.Context().Value("http-conn").(net.Conn)
-		server.sessions[vars["id"]] = conn
-		server.sshd.HandleConn(conn)
+		server.Sessions[vars["id"]] = conn
+		server.HandleConn(conn)
 	})
 	router.HandleFunc("/ssh/close/{id}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		server.closeSession(vars["id"])
+		server.CloseSession(vars["id"])
 	}).Methods("DELETE")
 
 	sv := http.Server{
@@ -209,8 +223,8 @@ func main() {
 	ticker := time.NewTicker(10 * time.Second)
 
 	for range ticker.C {
-		sessions := make([]string, 0, len(server.sessions))
-		for key := range server.sessions {
+		sessions := make([]string, 0, len(server.Sessions))
+		for key := range server.Sessions {
 			sessions = append(sessions, key)
 		}
 
