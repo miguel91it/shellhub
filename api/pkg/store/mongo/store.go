@@ -217,28 +217,14 @@ func (s *Store) UpdateDeviceStatus(ctx context.Context, uid models.UID, online b
 }
 
 func (s *Store) ListSessions(ctx context.Context, perPage, page int) ([]models.Session, int, error) {
-	skip := perPage * (page - 1)
-	query := []bson.M{
-		{
-			"$sort": bson.M{
-				"started_at": -1,
-			},
+	// Match all sessions, no matter when they were started
+	query := append(queryActiveSessions(), bson.M{
+		"$sort": bson.M{
+			"started_at": -1,
 		},
+	})
 
-		{
-			"$lookup": bson.M{
-				"from":         "active_sessions",
-				"localField":   "uid",
-				"foreignField": "uid",
-				"as":           "active",
-			},
-		},
-		{
-			"$addFields": bson.M{
-				"active": bson.M{"$anyElementTrue": []interface{}{"$active"}},
-			},
-		},
-	}
+	skip := perPage * (page - 1)
 
 	// Only match for the respective tenant if requested
 	if tenant := store.TenantFromContext(ctx); tenant != nil {
@@ -288,24 +274,9 @@ func (s *Store) ListSessions(ctx context.Context, perPage, page int) ([]models.S
 }
 
 func (s *Store) GetSession(ctx context.Context, uid models.UID) (*models.Session, error) {
-	query := []bson.M{
-		{
-			"$match": bson.M{"uid": uid},
-		},
-		{
-			"$lookup": bson.M{
-				"from":         "active_sessions",
-				"localField":   "uid",
-				"foreignField": "uid",
-				"as":           "active",
-			},
-		},
-		{
-			"$addFields": bson.M{
-				"active": bson.M{"$anyElementTrue": []interface{}{"$active"}},
-			},
-		},
-	}
+	query := append(queryActiveSessions(), bson.M{
+		"$match": bson.M{"uid": uid},
+	})
 
 	// Only match for the respective tenant if requested
 	if tenant := store.TenantFromContext(ctx); tenant != nil {
@@ -407,26 +378,11 @@ func (s *Store) GetStats(ctx context.Context) (*models.Stats, error) {
 		return nil, err
 	}
 
-	query = []bson.M{
-		{
-			"$lookup": bson.M{
-				"from":         "active_sessions",
-				"localField":   "uid",
-				"foreignField": "uid",
-				"as":           "active",
-			},
+	query = append(queryActiveSessions(), bson.M{
+		"$match": bson.M{
+			"active": true,
 		},
-		{
-			"$addFields": bson.M{
-				"active": bson.M{"$anyElementTrue": []interface{}{"$active"}},
-			},
-		},
-		{
-			"$match": bson.M{
-				"active": true,
-			},
-		},
-	}
+	})
 
 	// Only match for the respective tenant if requested
 	if tenant := store.TenantFromContext(ctx); tenant != nil {
@@ -645,6 +601,24 @@ func queryDevices() []bson.M {
 		},
 		{
 			"$unwind": "$namespace",
+		},
+	}
+}
+
+func queryActiveSessions() []bson.M {
+	return []bson.M{
+		{
+			"$lookup": bson.M{
+				"from":         "active_sessions",
+				"localField":   "uid",
+				"foreignField": "uid",
+				"as":           "active",
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"active": bson.M{"$anyElementTrue": []interface{}{"$active"}},
+			},
 		},
 	}
 }
